@@ -1,0 +1,52 @@
+using AutoMapper;
+
+using Ecom.Core.DTO.Categories;
+using Ecom.Core.DTO.Products;
+using Ecom.Core.Entities.Tbl_Product;
+
+namespace Ecom.Core.Mapping
+{
+    public class CategoryMapping : Profile
+    {
+        public CategoryMapping()
+        {
+            CreateMap<AddCategoryDto, TblCategories>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.RowVersion, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.ProductIds, opt => opt.Ignore())
+                .ForMember(dest => dest.Products, opt => opt.Ignore())
+                .ForMember(dest => dest.Photos, opt => opt.Ignore());
+
+            CreateMap<UpdateCategoryDto, TblCategories>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.RowVersion, opt => opt.Condition(src => src.RowVersion != null))
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.ProductIds, opt => opt.Ignore())
+                .ForMember(dest => dest.Products, opt => opt.Ignore())
+                .ForMember(dest => dest.Photos, opt => opt.Ignore());
+
+            CreateMap<TblCategories, CategoryDto>()
+                .ForMember(dest => dest.Photos, opt => opt.MapFrom(src =>
+                    src.Photos == null ? new List<PhotoUrlWithId>() :
+                    src.Photos.Where(p => p.IsDeleted != true)
+                              .Select(p => new PhotoUrlWithId
+                              {
+                                  Id = p.Id,
+                                  Url = p.PhotoPath
+                              })));
+        }
+    }
+}

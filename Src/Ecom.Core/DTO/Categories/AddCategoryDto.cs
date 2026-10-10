@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Ecom.Core.DTO.Common;
 
 namespace Ecom.Core.DTO.Categories
 {
@@ -6,6 +6,6 @@ namespace Ecom.Core.DTO.Categories
     {
         public string Name { get; set; }
         public string Description { get; set; }
-        public List<IFormFile>? files { get; set; }
+        public List<FileParameterDto>? Files { get; set; }
     }
 }

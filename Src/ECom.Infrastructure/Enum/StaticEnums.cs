@@ -3,8 +3,6 @@
     public enum StaticEnums
     {
         category,
-        product ,
-        value,
-        percentage,
+        product
     }
 }

@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Ecom.Core.DTO.Common;
+
 namespace Ecom.Core.Services
 {
     public interface IImageManagementService
     {
-        Task<List<string>> AddImagesAsync(List<IFormFile> files, string ForWhat);
+        Task<List<string>> AddImagesAsync(List<FileParameterDto> files, string forWhat, CancellationToken cancellationToken = default);
 
-        Task DeleteImageAsync(int id, string src);
+        Task RemoveImagesAsync(IEnumerable<string> imagesRelativePath);
 
-        Task ActualyDeletingUsingHangFire();
+        Task SoftDeleteImageAsync(int id, string src, CancellationToken cancellationToken = default);
+
+        Task PurgeImageFileAsync(int id, string src);
+
+        Task PurgeOldDeletedImagesAsync();
     }
 }

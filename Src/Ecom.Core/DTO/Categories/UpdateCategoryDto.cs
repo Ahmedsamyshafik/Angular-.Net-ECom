@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Ecom.Core.DTO.Products;
+﻿using Ecom.Core.DTO.Common;
 
 namespace Ecom.Core.DTO.Categories
 {
@@ -8,15 +7,11 @@ namespace Ecom.Core.DTO.Categories
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public byte[]? RowVersion { get; set; }
 
-        public List<int>? ExistingPhotoIds { get; set; }// List of IDs of existing photos to keep not change
-        public List<IFormFile>? NewPhotos { get; set; } // List of new photos to add>
-    }
-    public record CategoryDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public List<PhotoUrlWithId> Photos { get; set; } = new();
+        public List<string>? CurrentImgPaths { get; set; }
+
+        public List<int>? ExistingPhotoIds { get; set; }
+        public List<FileParameterDto>? NewPhotos { get; set; }
     }
 }

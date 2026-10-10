@@ -1,0 +1,738 @@
+{
+  "info": {
+    "_postman_id": "c39f4c51-9efa-4e91-9577-de1f12f2943c",
+    "name": "ECom",
+    "description": "E-Commerce API. Pagination, filtering, search and sorting on GetAll endpoints.\nBase URL: http://localhost:5090 (http launch profile from Properties/launchSettings.json).\nBoth controllers are rate-limited per client (EnableRateLimiting).\nVersioning: the version comes from the URL segment (/api/v1/...).\n\nPRICING: product responses expose realPrice (the original/base price) and priceAfterDiscount (the price after the currently active discount, or null when there is none). Add/Update still SEND 'Price' as the base price.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Category",
+      "id": "5cf2556a-5e17-4507-9d9b-8bd2422d64b8",
+      "description": "Category CRUD - /api/v1/category (versioned via URL segment)",
+      "item": [
+        {
+          "id": "224b36e8-2dbc-4df2-980f-4227e8c3633c",
+          "name": "GetAll",
+          "description": "Paginated list of categories with optional search, hasProducts filter and sorting.\nQuery params (all optional):\n- pageNumber (default 1)\n- pageSize (default 10)\n- search (searches Name/Description; space-separated terms are ANDed)\n- hasProducts (true/false - only categories that have / have no products)\n- sortBy: id | name | createdAt (default id)\n- sortOrder: asc | desc (default asc)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Category/GetAll?pageNumber=1&pageSize=10&search=electronics&hasProducts=true&sortBy=name&sortOrder=asc",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Category",
+                "GetAll"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "description": "Page number (min 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Page size (min 1)"
+                },
+                {
+                  "key": "search",
+                  "value": "electronics",
+                  "description": "Search in Name/Description"
+                },
+                {
+                  "key": "hasProducts",
+                  "value": "true",
+                  "description": "true = only categories that have products, false = only categories with none"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name",
+                  "description": "id | name | createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "description": "asc | desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "b1c4d2e6-1a3f-4c58-9d70-2f6a9b1e4d31",
+          "name": "GetById",
+          "description": "Get one category by id (includes photos). Returns 404 ProblemDetails when the id does not exist or is soft-deleted.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Category/GetById/1",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Category",
+                "GetById",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "id": "c2d5e3f7-2b40-4d69-8e81-3a7b0c2f5e42",
+          "name": "AddCategory",
+          "description": "Create a category. Form-data (multipart/form-data): Name, Description, Files (image(s)).",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Electronics",
+                  "type": "text"
+                },
+                {
+                  "key": "Description",
+                  "value": "Electronic devices and accessories",
+                  "type": "text"
+                },
+                {
+                  "key": "Files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Category/AddCategory",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Category",
+                "AddCategory"
+              ]
+            }
+          }
+        },
+        {
+          "id": "d3e6f4a8-3c51-4e70-9f92-4b8c1d3a6f53",
+          "name": "DeleteCategory",
+          "description": "Soft-delete a category and schedule its photos for purge. Returns 404 ProblemDetails when the id does not exist.",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Category/DeleteCategory/3",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Category",
+                "DeleteCategory",
+                "3"
+              ]
+            }
+          }
+        },
+        {
+          "id": "e4f7a5b9-4d62-4f81-8a03-5c9d2e4b7064",
+          "name": "UpdateCategory",
+          "description": "Update a category. Form-data (multipart/form-data): Id, Name, Description, RowVersion (base64), ExistingPhotoIds (the photo ids to keep), NewPhotos (image(s) to add). Any photo whose id is absent from ExistingPhotoIds is soft-deleted.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "Name",
+                  "value": "Electronics",
+                  "type": "text"
+                },
+                {
+                  "key": "Description",
+                  "value": "Electronic devices and accessories",
+                  "type": "text"
+                },
+                {
+                  "key": "RowVersion",
+                  "value": "AAAAAAAAB9E=",
+                  "description": "Base64 concurrency token from a previous response. Omit for last-write-wins.",
+                  "type": "text"
+                },
+                {
+                  "key": "ExistingPhotoIds",
+                  "value": "10",
+                  "description": "Ids of the photos to keep. Repeat the key to keep several.",
+                  "type": "text"
+                },
+                {
+                  "key": "NewPhotos",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Category/UpdateCategory",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Category",
+                "UpdateCategory"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "id": "801b7f8b-ac00-434e-a1f8-404fb6763b97",
+      "description": "Product CRUD + discounts - /api/v1/product (versioned via URL segment)",
+      "item": [
+        {
+          "id": "683f7919-665f-444f-bcb9-d5ecb91aa0fa",
+          "name": "GetAll",
+          "description": "Paginated list of products with optional filtering, search and sorting.\nQuery params (all optional):\n- pageNumber (default 1)\n- pageSize (default 10)\n- search (searches Name/Description; space-separated terms are ANDed)\n- categoryId\n- minPrice\n- maxPrice\n- sortBy: id | name | price | createdAt (default id)\n- sortOrder: asc | desc (default asc)\n\nPRICING: each product exposes realPrice (original/base price) and priceAfterDiscount (price after the currently active discount, null when there is none).\nNOTE: minPrice, maxPrice and sortBy=price operate on realPrice (the base price), not on priceAfterDiscount.\n\nDISCOUNTS: a discount is active when From <= now <= To. When several are active at once the lowest resulting price wins. A percentage above 100 or a fixed amount larger than the base price is clamped to 0. Category discounts are stored per product, so they behave exactly like product discounts here.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/GetAll?pageNumber=1&pageSize=10&search=laptop&categoryId=2&minPrice=100&maxPrice=2000&sortBy=price&sortOrder=desc",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "GetAll"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "description": "Page number (min 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Page size (min 1)"
+                },
+                {
+                  "key": "search",
+                  "value": "laptop",
+                  "description": "Search in Name/Description"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "2",
+                  "description": "Filter by category id"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "100",
+                  "description": "Minimum price (compares against realPrice)"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "2000",
+                  "description": "Maximum price (compares against realPrice)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "price",
+                  "description": "id | name | price (sorts by realPrice) | createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Product with an active discount",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5090/api/v1/product/GetAll?pageNumber=1&pageSize=10",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5090",
+                  "path": [
+                    "api",
+                    "v1",
+                    "product",
+                    "GetAll"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageNumber",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"statusMessage\": \"Products found.\",\n  \"data\": {\n    \"pageNumber\": 1,\n    \"pageSize\": 10,\n    \"totalCount\": 2,\n    \"totalPages\": 1,\n    \"data\": [\n      {\n        \"id\": 36,\n        \"name\": \"Laptop Pro 15\",\n        \"realPrice\": 1000.00,\n        \"priceAfterDiscount\": 800.00,\n        \"categoryName\": \"Electronics\",\n        \"rowVersion\": \"AAAAAAAAB9E=\",\n        \"photoUrls\": [\n          {\n            \"id\": 10,\n            \"url\": \"imgs/product/14fe0b636d7c4e508382a4375310ad81.png\"\n          }\n        ]\n      },\n      {\n        \"id\": 37,\n        \"name\": \"Mouse\",\n        \"realPrice\": 250.00,\n        \"priceAfterDiscount\": null,\n        \"categoryName\": \"Electronics\",\n        \"rowVersion\": \"AAAAAAAAB9Q=\",\n        \"photoUrls\": []\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "Fixed-amount discount",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5090/api/v1/product/GetAll?pageNumber=1&pageSize=10",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5090",
+                  "path": [
+                    "api",
+                    "v1",
+                    "product",
+                    "GetAll"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageNumber",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"statusMessage\": \"Products found.\",\n  \"data\": {\n    \"pageNumber\": 1,\n    \"pageSize\": 10,\n    \"totalCount\": 1,\n    \"totalPages\": 1,\n    \"data\": [\n      {\n        \"id\": 36,\n        \"name\": \"Laptop Pro 15\",\n        \"realPrice\": 1000.00,\n        \"priceAfterDiscount\": 750.00,\n        \"categoryName\": \"Electronics\",\n        \"rowVersion\": \"AAAAAAAAB9E=\",\n        \"photoUrls\": []\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "31f82727-dbc3-40a1-8992-f64d7bf9ac78",
+          "name": "GetById",
+          "description": "Get one product by id (includes category and photos).\n\nPRICING: exposes realPrice (original/base price) and priceAfterDiscount (price after the currently active discount, null when there is none).",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/GetById/36",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "GetById",
+                "36"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Product with an active discount",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5090/api/v1/product/GetById/36",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5090",
+                  "path": [
+                    "api",
+                    "v1",
+                    "product",
+                    "GetById",
+                    "36"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"statusMessage\": \"Product found.\",\n  \"data\": {\n    \"id\": 36,\n    \"name\": \"Laptop Pro 15\",\n    \"realPrice\": 1000.00,\n    \"priceAfterDiscount\": 800.00,\n    \"categoryName\": \"Electronics\",\n    \"rowVersion\": \"AAAAAAAAB9E=\",\n    \"photoUrls\": [\n      {\n        \"id\": 10,\n        \"url\": \"imgs/product/14fe0b636d7c4e508382a4375310ad81.png\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "Product with no active discount",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5090/api/v1/product/GetById/37",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5090",
+                  "path": [
+                    "api",
+                    "v1",
+                    "product",
+                    "GetById",
+                    "37"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"statusMessage\": \"Product found.\",\n  \"data\": {\n    \"id\": 37,\n    \"name\": \"Mouse\",\n    \"realPrice\": 250.00,\n    \"priceAfterDiscount\": null,\n    \"categoryName\": \"Electronics\",\n    \"rowVersion\": \"AAAAAAAAB9Q=\",\n    \"photoUrls\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "ecbeacc2-b45b-47bd-8d12-b7ec7d34f0f3",
+          "name": "AddProduct",
+          "description": "Create a product. Form-data (multipart/form-data): Name, Description, Price (the ORIGINAL/base price), CategoryId, Files (image(s)). Optional discount fields (DiscountName, DiscountType, DiscountValue, DiscountFrom, DiscountTo) create the product already discounted.\nDiscountType: 1 = Percentage, 2 = FixedAmount.\nNOTE: the response returns realPrice plus priceAfterDiscount, which is null here because the discount is applied after the product is created.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Laptop Pro 15",
+                  "type": "text"
+                },
+                {
+                  "key": "Description",
+                  "value": "A 15-inch professional laptop",
+                  "type": "text"
+                },
+                {
+                  "key": "Price",
+                  "value": "1000",
+                  "description": "Original/base price, before any discount",
+                  "type": "text"
+                },
+                {
+                  "key": "CategoryId",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "Files",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "DiscountName",
+                  "value": "Back to School Sale",
+                  "type": "text"
+                },
+                {
+                  "key": "DiscountType",
+                  "value": "1",
+                  "description": "1 = Percentage, 2 = FixedAmount",
+                  "type": "text"
+                },
+                {
+                  "key": "DiscountValue",
+                  "value": "20",
+                  "type": "text"
+                },
+                {
+                  "key": "DiscountFrom",
+                  "value": "2026-09-01T00:00:00Z",
+                  "type": "text"
+                },
+                {
+                  "key": "DiscountTo",
+                  "value": "2026-10-01T00:00:00Z",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/Add",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "Add"
+              ]
+            }
+          }
+        },
+        {
+          "id": "f508b6ca-5e73-4092-9b14-6dae3f5c8175",
+          "name": "UpdateProduct",
+          "description": "Update a product. Form-data (multipart/form-data): Id, Name, Description, Price (the ORIGINAL/base price), CategoryId, RowVersion (base64), ExistingPhotoIds (the photo ids to keep), NewPhotos (image(s) to add). Any photo whose id is absent from ExistingPhotoIds is soft-deleted.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Id",
+                  "value": "36",
+                  "type": "text"
+                },
+                {
+                  "key": "Name",
+                  "value": "Laptop Pro 15",
+                  "type": "text"
+                },
+                {
+                  "key": "Description",
+                  "value": "A 15-inch professional laptop",
+                  "type": "text"
+                },
+                {
+                  "key": "Price",
+                  "value": "1000",
+                  "description": "Original/base price, before any discount",
+                  "type": "text"
+                },
+                {
+                  "key": "CategoryId",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "RowVersion",
+                  "value": "AAAAAAAAB9E=",
+                  "description": "Base64 concurrency token from a previous response. Omit for last-write-wins.",
+                  "type": "text"
+                },
+                {
+                  "key": "ExistingPhotoIds",
+                  "value": "10",
+                  "description": "Ids of the photos to keep. Repeat the key to keep several.",
+                  "type": "text"
+                },
+                {
+                  "key": "NewPhotos",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/Update",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "Update"
+              ]
+            }
+          }
+        },
+        {
+          "id": "0619c7db-6f84-41a3-ac25-7ebf4069286",
+          "name": "Delete",
+          "description": "Soft-delete a product and schedule its photos for purge. Returns 404 ProblemDetails when the id does not exist.",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/Delete/1",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "Delete",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "id": "172ad8ec-7095-42b4-bd36-8fc051a03997",
+          "name": "ApplyDiscount",
+          "description": "Apply a discount to specific products.\nBody (JSON):\n- productIds: array of product ids (required)\n- from / to: the active window, both bounds inclusive\n- discountType: 1 = Percentage, 2 = FixedAmount\n- value: the percentage, or the fixed amount\n- name: optional label\nA product may carry several active discounts; the lowest resulting price is then reported as priceAfterDiscount.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productIds\": [1, 2, 3],\n  \"from\": \"2026-09-01T00:00:00Z\",\n  \"to\": \"2026-10-01T00:00:00Z\",\n  \"discountType\": 1,\n  \"value\": 20,\n  \"name\": \"Back to School Sale\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/ApplyDiscount",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "ApplyDiscount"
+              ]
+            }
+          }
+        },
+        {
+          "id": "283be9fd-81a6-43c5-ce47-9d1162b14aa8",
+          "name": "ApplyCategoryDiscount",
+          "description": "Apply a discount to every product in a category. The category is expanded into per-product discount links when the discount is created, so it behaves exactly like a product-level discount on read. Soft-deleted products are skipped.\nBody (JSON):\n- categoryId: the category (required)\n- from / to: the active window, both bounds inclusive\n- discountType: 1 = Percentage, 2 = FixedAmount\n- value: the percentage, or the fixed amount\n- name: optional label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": 2,\n  \"from\": \"2026-09-01T00:00:00Z\",\n  \"to\": \"2026-10-01T00:00:00Z\",\n  \"discountType\": 1,\n  \"value\": 15,\n  \"name\": \"Headphones Category Sale\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/product/ApplyCategoryDiscount",
+              "protocol": "http",
+"host": [
+                  "localhost"
+                ],
+                "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "product",
+                "ApplyCategoryDiscount"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

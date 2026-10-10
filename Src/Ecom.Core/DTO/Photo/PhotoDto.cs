@@ -4,6 +4,7 @@
     {
         public int PhotoId { get; set; }
         public string PhotoPath { get; set; }
-        public int ProductId { get; set; }
+        public int? ProductId { get; set; }
+        public int? CategoryId { get; set; }
     }
 }

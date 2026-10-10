@@ -1,9 +1,9 @@
-﻿using Ecom.Core.Entities.General;
+﻿using Ecom.Core.DTO.Products;
+using Ecom.Core.Entities.Discount;
 
 namespace Ecom.Core.Interfaces
 {
     public interface IDiscountRepo : IGenericRepo<TblDiscount, int>
     {
-        Task<TblDiscount> AddDiscountAsync(DateTime From, DateTime To, int TypeOfDiscount, int val, string? Name);
     }
 }
