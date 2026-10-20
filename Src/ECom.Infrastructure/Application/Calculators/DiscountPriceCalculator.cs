@@ -45,7 +45,7 @@ namespace ECom.Infrastructure.Application.Calculators
                 {
                     continue;
                 }
-
+                //Applying discount 
                 var candidate = Apply(discount, realPrice);
 
                 if (best is null || IsBetter(candidate, discount, best.Value, bestDiscount!))

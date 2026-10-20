@@ -17,7 +17,7 @@ namespace ECom.Infrastructure.Services
             this.configuration = configuration;
         }
         //STMP
-        public async Task SendEmail(EmailDto emailDto)
+        public async Task SendEmail(EmailDto emailDto, CancellationToken cancellationToken = default)
         {
             string FromAdress = configuration["EmailSetting:From"];
             MimeMessage message = new();
@@ -35,11 +35,11 @@ namespace ECom.Infrastructure.Services
                 try
                 {
                     smtp.CheckCertificateRevocation = false;
-                    await smtp.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
+                    await smtp.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect, cancellationToken);
                     string userName = configuration["EmailSetting:username"];
                     string password = configuration["EmailSetting:password"];
-                    await smtp.AuthenticateAsync(userName, password);
-                    await smtp.SendAsync(message);
+                    await smtp.AuthenticateAsync(userName, password, cancellationToken);
+                    await smtp.SendAsync(message, cancellationToken);
                 }
                 catch
                 {

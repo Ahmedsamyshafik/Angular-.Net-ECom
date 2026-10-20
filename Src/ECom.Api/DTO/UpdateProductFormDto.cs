@@ -10,6 +10,7 @@ namespace ECom.Api.DTO
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
+        public int Quantity { get; set; }
         public int CategoryId { get; set; }
         public string? RowVersion { get; set; }
 
@@ -27,6 +28,7 @@ namespace ECom.Api.DTO
                 Name = form.Name,
                 Description = form.Description,
                 Price = form.Price,
+                Quantity = form.Quantity,
                 CategoryId = form.CategoryId,
                 RowVersion = string.IsNullOrEmpty(form.RowVersion) ? null : Convert.FromBase64String(form.RowVersion),
                 ExistingPhotoIds = form.ExistingPhotoIds,

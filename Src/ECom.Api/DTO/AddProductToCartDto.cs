@@ -2,9 +2,8 @@
 {
     public class AddProductToCartDto
     {
-        // productid , userID,Quentity ,
+        // The cart owner is taken from the authenticated token, never from the client.
         public int productId { get; set; }
         public int Quentity { get; set; }
-        public string UserId { get; set; }
     }
 }

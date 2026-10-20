@@ -134,7 +134,7 @@ public class CategoryServiceTests
             Name = "Electronics",
             Description = "Devices",
             Files = new List<FileParameterDto>()
-        });
+        }, "1");
 
         Assert.Equal("Electronics", staged!.Name);
         Assert.Equal("Devices", staged.Description);
@@ -162,10 +162,10 @@ public class CategoryServiceTests
         {
             Name = "Electronics",
             Description = "Devices"
-        }));
+        }, "1"));
 
         _imageService.Verify(
-            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/category/x.png"))),
+            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/category/x.png")), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -179,7 +179,7 @@ public class CategoryServiceTests
         await _service.CompensateAsync(result);
 
         _imageService.Verify(
-            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/category/1.png"))),
+            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/category/1.png")), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -207,7 +207,7 @@ public class CategoryServiceTests
             Name = "New Electronics",
             Description = "Updated",
             RowVersion = clientRowVersion
-        });
+        }, "1");
 
         Assert.Equal("New Electronics", category.Name);
         Assert.Equal("Updated", category.Description);
@@ -231,7 +231,7 @@ public class CategoryServiceTests
             Name = "New Electronics",
             Description = "Updated",
             RowVersion = null
-        });
+        }, "1");
 
         Assert.Equal(new byte[] { 1, 2 }, category.RowVersion);
     }
@@ -275,7 +275,7 @@ public class CategoryServiceTests
             Description = "Updated",
             ExistingPhotoIds = new List<int>(),
             NewPhotos = new List<FileParameterDto>()
-        });
+        }, "1");
 
         var removed = Assert.Single(removedPhotos!);
         Assert.True(removed.IsDeleted);
@@ -301,7 +301,7 @@ public class CategoryServiceTests
             Id = 99,
             Name = "X",
             Description = "Y"
-        }));
+        }, "1"));
     }
 
     #endregion
@@ -324,7 +324,7 @@ public class CategoryServiceTests
                 new TblPhoto { Id = 10, PhotoPath = "imgs/category/a.png", CategoryId = 1 }
             });
 
-        await _service.DeleteAsync(1);
+        await _service.DeleteAsync(1, "1");
 
         _imageService.Verify(s => s.SoftDeleteImageAsync(10, "imgs/category/a.png", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -335,7 +335,7 @@ public class CategoryServiceTests
         _categoryRepo.Setup(r => r.DeleteOrThrowAsync(It.IsAny<CancellationToken>(), It.IsAny<object[]>()))
             .ThrowsAsync(new NotFoundException("Category not found."));
 
-        await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(999));
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(999, "1"));
     }
 
     #endregion

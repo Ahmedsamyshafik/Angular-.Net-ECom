@@ -4,6 +4,7 @@ using Ecom.Core.DTO.CartDto;
 using Ecom.Core.DTO.Products;
 using Ecom.Core.Entities.Discount;
 using Ecom.Core.Entities.Tbl_Product;
+using Ecom.Core.Exceptions;
 using Ecom.Core.Interfaces;
 using Ecom.Core.Pagination;
 using Ecom.Core.Services;
@@ -15,8 +16,6 @@ namespace ECom.Infrastructure.Application.Services
     public class ProductService : IProductService
     {
         #region Private Fields
-
-        private const int SystemUserId = 1;
 
         private readonly IProductRepo _productRepo;
         private readonly ICategoryRepo _categoryRepo;
@@ -54,9 +53,7 @@ namespace ECom.Infrastructure.Application.Services
 
         #region Queries
 
-        public async Task<Pagination<ProductDto>> GetPageAsync(
-            ProductQueryParams query,
-            CancellationToken cancellationToken = default)
+        public async Task<Pagination<ProductDto>> GetPageAsync(ProductQueryParams query, CancellationToken cancellationToken = default)
         {
             var page = await _productRepo.GetPageAsync(query, cancellationToken);
 
@@ -88,39 +85,49 @@ namespace ECom.Infrastructure.Application.Services
         }
 
 
-        public async Task<ProductCartInfoDto> GetProductForAddToCartAsync(int productId, int quantity, CancellationToken cancellationToken = default)
+        public async Task<ProductCartInfoDto> GetProductForAddToCartAsync(int productId, int quantity, CancellationToken cancellationToken = default, bool enforceAvailableStock = true)
         {
-            TblProducts? product = await _productRepo.GetByIdOrThrowAsync(
+            if (quantity <= 0)
+            {
+                throw new BadRequestException("Quantity must be greater than zero.");
+            }
+
+            TblProducts product = await _productRepo.GetByIdOrThrowAsync(
                 cancellationToken,
                 new object[] { productId },
-                p => p.Category!);
-            if (product is null)
+                p => p.Category!,
+                p => p.Photos!);
+
+            if (enforceAvailableStock && quantity > product.Quantity)
             {
-                return null;
+                throw new BadRequestException(
+                    $"Insufficient stock for '{product.Name}'. Available: {product.Quantity}, requested: {quantity}.");
             }
 
             var discountsByProductId = await GetDiscountsByProductIdAsync(
                 new[] { product.Id },
                 cancellationToken);
-            decimal isDiscount = 0;
-            if (discountsByProductId.Count() > 0)
-            {
-                isDiscount = (decimal)_discountPriceCalculator
-                   .CalculatePriceAfterDiscount(product.Price,
-                   discountsByProductId.GetValueOrDefault(product.Id));
+            var discounts = discountsByProductId.GetValueOrDefault(product.Id);
 
-            }
+            // The calculator returns null when no discount is currently active, in which case the
+            // product keeps its base price and no price-expiry is attached to the cart line.
+            var priceAfterDiscount = _discountPriceCalculator.CalculatePriceAfterDiscount(product.Price, discounts);
 
             ProductCartInfoDto res = new ProductCartInfoDto
             {
                 ProductId = product.Id,
                 ProductName = product.Name,
-                productImgsUrl = product.Photos?.Select(x => x.PhotoPath).ToList(),
+                productImgsUrl = product.Photos?
+                    .Where(p => p.IsDeleted != true)
+                    .Select(x => x.PhotoPath)
+                    .ToList(),
                 ProductDescription = product.Description,
                 Qunatity = quantity,
                 BasePrice = product.Price,
-                FinalPrice = isDiscount,
-                PriceExpiresAt = discountsByProductId.GetValueOrDefault(product.Id)?.FirstOrDefault()?.EndDate,
+                FinalPrice = priceAfterDiscount ?? product.Price,
+                PriceExpiresAt = priceAfterDiscount.HasValue
+                    ? discounts?.Max(d => d.EndDate)
+                    : null,
                 AvailableQuantity = product.Quantity
             };
 
@@ -132,6 +139,7 @@ namespace ECom.Infrastructure.Application.Services
 
         public async Task<AddProductResult> AddAsync(
             AddProductDto product,
+            string systemUserId,
             CancellationToken cancellationToken = default)
         {
             var storedPaths = await _imageManagementService
@@ -141,7 +149,7 @@ namespace ECom.Infrastructure.Application.Services
             {
                 var entity = _mapper.Map<TblProducts>(product);
                 entity.Photos = storedPaths
-                    .Select(path => new TblPhoto { PhotoPath = path, Product = entity })
+                    .Select(path => new TblPhoto { PhotoPath = path, Product = entity, CreatedBy = systemUserId })
                     .ToList();
 
                 var added = await _productRepo.AddAsync(entity, cancellationToken);
@@ -149,22 +157,23 @@ namespace ECom.Infrastructure.Application.Services
                 var dto = _mapper.Map<ProductDto>(added);
                 dto.CategoryName = await GetCategoryNameAsync(added.CategoryId, cancellationToken) ?? dto.CategoryName;
 
-                return new AddProductResult(dto, storedPaths);
+                return new AddProductResult(dto, storedPaths, entity);
             }
             catch
             {
-                await RemoveStoredImagesAsync(storedPaths);
+                await RemoveStoredImagesAsync(storedPaths, cancellationToken);
                 throw;
             }
         }
 
         public async Task CompensateAsync(AddProductResult result, CancellationToken cancellationToken = default)
         {//Roll back
-            await RemoveStoredImagesAsync(result?.StoredPhotoPaths);
+            await RemoveStoredImagesAsync(result?.StoredPhotoPaths, cancellationToken);
         }
 
         public async Task<ProductDto> UpdateAsync(
             UpdateProductDto product,
+            string systemUserId,
             CancellationToken cancellationToken = default)
         {
             var entity = await _productRepo.GetByIdOrThrowAsync(
@@ -173,10 +182,12 @@ namespace ECom.Infrastructure.Application.Services
 
             _mapper.Map(product, entity);
 
+            entity.UpdatedBy = systemUserId;
+
             var storedPaths = await _imageManagementService
                 .AddImagesAsync(product.NewPhotos, StaticEnums.product.ToString(), cancellationToken);
 
-            await ReconcilePhotosAsync(product.ExistingPhotoIds, storedPaths, product.Id, cancellationToken);
+            await ReconcilePhotosAsync(product.ExistingPhotoIds, storedPaths, product.Id, systemUserId, cancellationToken);
 
             var dto = _mapper.Map<ProductDto>(entity);
             dto.CategoryName = await GetCategoryNameAsync(entity.CategoryId, cancellationToken) ?? dto.CategoryName;
@@ -184,7 +195,7 @@ namespace ECom.Infrastructure.Application.Services
             return dto;
         }
 
-        public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+        public async Task DeleteAsync(int id, string systemUserId, CancellationToken cancellationToken = default)
         {
             await _productRepo.DeleteOrThrowAsync(cancellationToken, id);
 
@@ -195,16 +206,16 @@ namespace ECom.Infrastructure.Application.Services
             foreach (var photo in photos)
             {
                 await _imageManagementService.SoftDeleteImageAsync(photo.Id, photo.PhotoPath, cancellationToken);
+                photo.DeletedBy = systemUserId;
             }
         }
+
 
         #endregion
 
         #region Private Helpers
 
-        private ProductDto MapToDto(
-            TblProducts product,
-            IReadOnlyDictionary<int, List<TblDiscount>> discountsByProductId)
+        private ProductDto MapToDto(TblProducts product, IReadOnlyDictionary<int, List<TblDiscount>> discountsByProductId)
         {
             ProductDto? dto = _mapper.Map<ProductDto>(product);
 
@@ -217,9 +228,7 @@ namespace ECom.Infrastructure.Application.Services
             return dto;
         }
 
-        private async Task<IReadOnlyDictionary<int, List<TblDiscount>>> GetDiscountsByProductIdAsync(
-            IEnumerable<int> productIds,
-            CancellationToken cancellationToken)
+        private async Task<IReadOnlyDictionary<int, List<TblDiscount>>> GetDiscountsByProductIdAsync(IEnumerable<int> productIds, CancellationToken cancellationToken)
         {
             var links = await _discountProductRepo.GetByProductIdsAsync(productIds, cancellationToken);
 
@@ -231,11 +240,7 @@ namespace ECom.Infrastructure.Application.Services
                     group => group.Select(link => link.Discount).ToList());
         }
 
-        private async Task ReconcilePhotosAsync(
-            List<int>? keptPhotoIds,
-            IReadOnlyList<string> newPhotoPaths,
-            int productId,
-            CancellationToken cancellationToken)
+        private async Task ReconcilePhotosAsync(List<int>? keptPhotoIds, IReadOnlyList<string> newPhotoPaths, int productId, string systemUserId, CancellationToken cancellationToken)
         {
             var kept = keptPhotoIds ?? new List<int>();
 
@@ -250,7 +255,7 @@ namespace ECom.Infrastructure.Application.Services
             {
                 photo.IsDeleted = true;
                 photo.DeletedAt = DateTime.UtcNow;
-                photo.DeletedBy = SystemUserId;
+                photo.DeletedBy = systemUserId;
             }
 
             if (newPhotoPaths.Count == 0)
@@ -263,7 +268,7 @@ namespace ECom.Infrastructure.Application.Services
                 {
                     PhotoPath = path,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = SystemUserId,
+                    CreatedBy = systemUserId,
                     ProductId = productId,
                     CategoryId = null
                 })
@@ -278,14 +283,14 @@ namespace ECom.Infrastructure.Application.Services
             return category?.Name;
         }
 
-        private async Task RemoveStoredImagesAsync(IReadOnlyList<string>? storedPaths)
+        private async Task RemoveStoredImagesAsync(IReadOnlyList<string>? storedPaths, CancellationToken cancellationToken = default)
         {
             if (storedPaths is null || storedPaths.Count == 0)
             {
                 return;
             }
 
-            await _imageManagementService.RemoveImagesAsync(storedPaths);
+            await _imageManagementService.RemoveImagesAsync(storedPaths, cancellationToken);
         }
 
         #endregion

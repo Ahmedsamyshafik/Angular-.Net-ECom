@@ -1,12 +1,22 @@
 using Asp.Versioning;
+
+using Ecom.Core.DTO.StripePayment;
 using Ecom.Core.Services;
+
 using ECom.Api.Exceptions;
 using ECom.Api.Middleware;
 using ECom.Api.Registerations;
+using ECom.Infrastructure.Application.Services;
+using ECom.Infrastructure.Data;
 using ECom.Infrastructure.Registerations;
+
 using FluentValidation;
+
 using Hangfire;
+
 using Scalar.AspNetCore;
+
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,10 +62,23 @@ builder.Services.InfrastructureConfigure(builder.Configuration);
 builder.Services.HangFireConfigure(builder.Configuration);
 //FluentValidation: registers every IValidator<T> from this assembly
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+//Payment
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
 
 var app = builder.Build();
 
-
+// Bootstrap Identity (Admin role + optional admin promotion via Seed:AdminEmail) before
+// serving requests. Idempotent; if the database is momentarily unavailable the API must
+// still start, so failures are logged instead of thrown.
+try
+{
+    await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger);
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Identity seeding failed; continuing without it.");
+}
 
 // Global exception handling (outermost middleware) - maps exceptions to ProblemDetails
 app.UseExceptionHandler();
@@ -77,14 +100,28 @@ app.UseHangfireDashboard("/hangfire");
 // Schedule the recurring job to purge old deleted images every 3 months
 RecurringJob.AddOrUpdate<IImageManagementService>(
     "purge-old-deleted-images",
-    service => service.PurgeOldDeletedImagesAsync(),
+    service => service.PurgeOldDeletedImagesAsync(CancellationToken.None),
     "0 1 */3 * *"
+);
+// Safety-net sweep: every stock reservation also has its own one-shot 3-day Hangfire job
+// scheduled at creation time (see IReservationJobScheduler). This recurring job catches
+// reservations whose job was lost/cancelled before the server restarted; both paths are
+// idempotent (Status gate in StockReservationService.ExpireReservationAsync).
+RecurringJob.AddOrUpdate<ReservationExpirationJobs>(
+    "expire-stock-reservations",
+    job => job.ExpireDueReservationsAsync(),
+    "*/1 * * * *"
 );
 // 2. Enable Static Files (علشان يقدر يخدم الصور من wwwroot)
 app.UseStaticFiles();
 
-// 3. Enable CORS Middleware (لازم يتحط قبل app.MapControllers)
-app.UseCors("AllowAngularApp"); 
+// Routing must run before CORS, rate limiting and authorization so that the selected
+// endpoint (and its [EnableRateLimiting]/[Authorize]/CORS metadata) is available to them.
+app.UseRouting();
+
+// CORS runs before authentication so preflight (OPTIONS) requests are answered without
+// requiring credentials, and before the rate limiter so a 429 still carries CORS headers.
+app.UseCors("AllowAngularApp");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -95,10 +132,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Rate limiting: applies the global sliding window to every request, then the
-// per-client token bucket on endpoints that opt in via [EnableRateLimiting].
-// Placed after CORS (so 429 responses still carry CORS headers for the Angular
-// app) and before authorization/endpoints (so every mapped endpoint is protected).
+// Authentication MUST run before the per-client rate-limiting policy: that policy keys
+// authenticated requests by user id, which only exists once authentication has populated
+// HttpContext.User.
+app.UseAuthentication();
+
+// Rate limiting: same order as before (after CORS) but now also after authentication so
+// authenticated requests are partitioned by user id rather than falling back to IP. Runs
+// before authorization, so a rejected request never reaches an endpoint.
 app.UseRateLimiter();
 
 app.UseAuthorization();

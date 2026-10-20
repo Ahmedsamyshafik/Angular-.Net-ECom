@@ -10,6 +10,7 @@ namespace ECom.Api.DTO
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
+        public int Quantity { get; set; }
         public int CategoryId { get; set; }
 
         public List<IFormFile>? Files { get; set; }
@@ -30,6 +31,7 @@ namespace ECom.Api.DTO
                 Name = form.Name,
                 Description = form.Description,
                 Price = form.Price,
+                Quantity = form.Quantity,
                 CategoryId = form.CategoryId,
                 Files = form.Files?.Select(FileParameterConverter.ToFileParameter).ToList()
             };

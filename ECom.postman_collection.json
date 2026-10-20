@@ -733,6 +733,407 @@
           }
         }
       ]
+    },
+    {
+      "name": "Account",
+      "id": "a1c0f0d1-0001-4a01-9a01-000000000001",
+      "description": "Authentication - /api/v1/Account. Login issues the JWT as an HttpOnly cookie named 'token' (Domain=localhost), so run Login first and Postman's cookie jar will authenticate the Cart and Order folders automatically.",
+      "item": [
+        {
+          "id": "a1c0f0d1-0001-4a01-9a01-000000000002",
+          "name": "Register",
+          "description": "Creates the user and sends an e-mail confirmation code. The account must be activated (ActiveAccount) before Login works.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"buyer1\",\n  \"Email\": \"buyer1@example.com\",\n  \"DisplayName\": \"Buyer One\",\n  \"password\": \"Buyer@123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Account/Register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Account",
+                "Register"
+              ]
+            }
+          }
+        },
+        {
+          "id": "a1c0f0d1-0001-4a01-9a01-000000000003",
+          "name": "Login",
+          "description": "Authenticates and sets the HttpOnly 'token' cookie. All Cart/Order calls rely on this cookie.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Email\": \"buyer1@example.com\",\n  \"password\": \"Buyer@123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Account/Login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Account",
+                "Login"
+              ]
+            }
+          }
+        },
+        {
+          "id": "a1c0f0d1-0001-4a01-9a01-000000000004",
+          "name": "ActiveAccount",
+          "description": "Confirms the account with the code e-mailed by Register.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Email\": \"buyer1@example.com\",\n  \"Token\": \"<code-from-email>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Account/ActiveAccount",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Account",
+                "ActiveAccount"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "id": "b2c0f0d1-0002-4b02-9b02-000000000001",
+      "description": "Cart - /api/v1/Cart. Every request requires the authenticated cookie (run Account/Login first). The user id is always taken from the token (NameIdentifier claim) and never from the request body, so a caller cannot read or modify another user's cart.",
+      "item": [
+        {
+          "id": "b2c0f0d1-0002-4b02-9b02-000000000002",
+          "name": "Get",
+          "description": "Returns the current user's cart, or null when empty.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Cart/Get",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Cart",
+                "Get"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2c0f0d1-0002-4b02-9b02-000000000003",
+          "name": "Add",
+          "description": "Adds a product to the cart (or merges the quantity if it is already there). Price/stock/description/image/expiry are re-read server-side. 400 when the quantity exceeds available stock.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 18,\n  \"Quentity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Cart/Add",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Cart",
+                "Add"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2c0f0d1-0002-4b02-9b02-000000000004",
+          "name": "Update",
+          "description": "Sets the quantity of a single cart line (quantity <= 0 removes it).",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 18,\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Cart/update",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Cart",
+                "update"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2c0f0d1-0002-4b02-9b02-000000000005",
+          "name": "UpdateCart",
+          "description": "Bulk replacement: the request Items array becomes the new cart contents. userId in the body is ignored (the token's user id is used).",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Items\": [\n    { \"productId\": 18, \"quantity\": 2 },\n    { \"productId\": 15, \"quantity\": 3 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Cart/UpdateCart",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Cart",
+                "UpdateCart"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2c0f0d1-0002-4b02-9b02-000000000006",
+          "name": "Delete",
+          "description": "Removes the current user's cart from Redis. 400 when there is no cart.",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Cart/Delete",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Cart",
+                "Delete"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "id": "c3d0f0d1-0003-4c03-9c03-000000000001",
+      "description": "Orders - /api/v1/Order. Requires authentication (run Account/Login first). CreateOrder reads the authenticated user's cart from Redis, re-validates each line's stock and current price server-side, persists the order and only then clears the cart. Orders are always scoped to the token's user.",
+      "item": [
+        {
+          "id": "c3d0f0d1-0003-4c03-9c03-000000000002",
+          "name": "CreateOrder",
+          "description": "Creates an order from the current cart. 400 when the cart is empty, the delivery method id is unknown, or any line exceeds available stock. Returns the stored order (subTotal = sum of line totals; Total = subTotal + delivery price).",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryMethodId\": 2,\n  \"basketId\": \"ignored\",\n  \"shipAdress\": {\n    \"FirstName\": \"Buyer\",\n    \"LastName\": \"One\",\n    \"City\": \"Cairo\",\n    \"ZipCode\": \"11511\",\n    \"Street\": \"1 Test St\",\n    \"State\": \"Cairo\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Order/CreateOrder",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Order",
+                "CreateOrder"
+              ]
+            }
+          }
+        },
+        {
+          "id": "c3d0f0d1-0003-4c03-9c03-000000000003",
+          "name": "GetAllOrders",
+          "description": "All orders belonging to the authenticated user (BuyerEmail = token e-mail).",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Order/GetAllOrders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Order",
+                "GetAllOrders"
+              ]
+            }
+          }
+        },
+        {
+          "id": "c3d0f0d1-0003-4c03-9c03-000000000004",
+          "name": "GetAllDeliveryMethod",
+          "description": "Lists the available delivery methods (id/name/price).",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Order/GetAllDeliveryMethod",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Order",
+                "GetAllDeliveryMethod"
+              ]
+            }
+          }
+        },
+        {
+          "id": "c3d0f0d1-0003-4c03-9c03-000000000005",
+          "name": "GetDeliveryMethod",
+          "description": "Delivery method of one order. 404 if the order does not exist or belongs to another user.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5090/api/v1/Order/GetDeliveryMethod?OrderId=1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5090",
+              "path": [
+                "api",
+                "v1",
+                "Order",
+                "GetDeliveryMethod"
+              ],
+              "query": [
+                {
+                  "key": "OrderId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

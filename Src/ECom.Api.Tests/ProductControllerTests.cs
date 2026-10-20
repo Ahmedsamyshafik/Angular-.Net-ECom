@@ -4,6 +4,8 @@ using Ecom.Core.Exceptions;
 using Ecom.Core.Interfaces;
 using Ecom.Core.Pagination;
 using Ecom.Core.Services;
+using Ecom.Core.Services.Facads;
+using Ecom.Core.Services.Orchestrators;
 
 using ECom.Api.Controllers.Product.V1;
 using ECom.Api.DTO;
@@ -95,7 +97,7 @@ public class ProductControllerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(page);
 
-        var result = await _controller.GetAll(new ProductQueryParams());
+        var result = await _controller.GetAllV1(new ProductQueryParams());
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var api = Assert.IsType<responseApi>(ok.Value);
@@ -115,7 +117,7 @@ public class ProductControllerTests
                 new ValidationFailure(nameof(ProductQueryParams.PageNumber), "Page number must be greater than 0.")
             }));
 
-        await Assert.ThrowsAsync<BadRequestException>(() => _controller.GetAll(new ProductQueryParams()));
+        await Assert.ThrowsAsync<BadRequestException>(() => _controller.GetAllV1(new ProductQueryParams()));
         _productService.Verify(
             s => s.GetPageAsync(It.IsAny<ProductQueryParams>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -157,7 +159,7 @@ public class ProductControllerTests
         };
 
         var addResult = SampleAddResult("imgs/product/x.png");
-        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(addResult);
 
         var result = await _controller.Add(form);
@@ -170,6 +172,7 @@ public class ProductControllerTests
         _addProduct.Verify(
             o => o.ExecuteAsync(
                 It.Is<AddProductDto>(d => d.Name == "Laptop" && d.CategoryId == 3 && d.Price == 1200m),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
@@ -191,7 +194,7 @@ public class ProductControllerTests
             DiscountName = "New Year"
         };
 
-        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleAddResult());
 
         var result = await _controller.Add(form);
@@ -200,6 +203,7 @@ public class ProductControllerTests
         _addProduct.Verify(
             o => o.ExecuteAsync(
                 It.Is<AddProductDto>(d => d.Discount != null && d.Discount.DiscountType == DiscountType.Percentage),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _discountFacade.Verify(
@@ -220,7 +224,7 @@ public class ProductControllerTests
             Files = new List<IFormFile>()
         };
 
-        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleAddResult("imgs/product/x.png"));
 
         await _controller.Add(form);
@@ -236,7 +240,7 @@ public class ProductControllerTests
     {
         var addResult = SampleAddResult("imgs/product/x.png", "imgs/product/y.png");
 
-        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(addResult);
 
         _unitOfWork.Setup(u => u.Commit())
@@ -262,7 +266,7 @@ public class ProductControllerTests
     [Fact]
     public async Task Add_WhenOrchestratorFails_ShouldNotCommit()
     {
-        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _addProduct.Setup(o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new BadRequestException("Provide a valid category."));
 
         var form = new AddProductFormDto
@@ -290,7 +294,7 @@ public class ProductControllerTests
 
         await Assert.ThrowsAsync<BadRequestException>(() => _controller.Add(new AddProductFormDto()));
         _addProduct.Verify(
-            o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()),
+            o => o.ExecuteAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -307,7 +311,7 @@ public class ProductControllerTests
             RowVersion = Convert.ToBase64String(new byte[] { 9, 8, 7 })
         };
 
-        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleDto());
 
         var result = await _controller.Update(form);
@@ -319,6 +323,7 @@ public class ProductControllerTests
         _productService.Verify(
             s => s.UpdateAsync(
                 It.Is<UpdateProductDto>(d => d.Id == 1 && d.Name == "Updated Laptop" && d.RowVersion != null),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
@@ -327,7 +332,7 @@ public class ProductControllerTests
     [Fact]
     public async Task Update_WhenProductMissing_ShouldPropagateNotFound()
     {
-        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new NotFoundException("Product not found."));
 
         var form = new UpdateProductFormDto { Id = 99, Name = "X", Description = "Y", Price = 1m, CategoryId = 1 };
@@ -339,7 +344,7 @@ public class ProductControllerTests
     [Fact]
     public async Task Update_WhenConcurrencyConflict_ShouldPropagateToGlobalHandler()
     {
-        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.UpdateAsync(It.IsAny<UpdateProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleDto());
 
         _unitOfWork.Setup(u => u.Commit())
@@ -361,20 +366,20 @@ public class ProductControllerTests
     [Fact]
     public async Task Delete_ShouldDelegateToProductServiceAndCommitOnce()
     {
-        _productService.Setup(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.DeleteAsync(1, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _controller.Delete(1);
 
         Assert.IsType<OkObjectResult>(result);
-        _productService.Verify(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        _productService.Verify(s => s.DeleteAsync(1, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
 
     [Fact]
     public async Task Delete_WhenProductMissing_ShouldPropagateNotFound()
     {
-        _productService.Setup(s => s.DeleteAsync(999, It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.DeleteAsync(999, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new NotFoundException("Product not found."));
 
         await Assert.ThrowsAsync<NotFoundException>(() => _controller.Delete(999));

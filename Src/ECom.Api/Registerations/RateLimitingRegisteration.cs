@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Authentication;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECom.Api.Registerations
@@ -23,9 +23,7 @@ namespace ECom.Api.Registerations
         /// <summary>Name of the endpoint policy that carries the per-client token bucket.</summary>
         public const string PerClientPolicyName = "per-client";
 
-        public static IServiceCollection RateLimitingConfigure(
-            this IServiceCollection services,
-            IConfiguration configuration)
+        public static IServiceCollection RateLimitingConfigure(this IServiceCollection services, IConfiguration configuration)
         {
             var options = configuration.GetSection("RateLimiting").Get<RateLimitingOptions>()
                           ?? new RateLimitingOptions();

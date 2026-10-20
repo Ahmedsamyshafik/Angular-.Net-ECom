@@ -57,7 +57,7 @@ namespace ECom.Infrastructure.Services
             }
         }
 
-        public Task RemoveImagesAsync(IEnumerable<string> imagesRelativePath)
+        public Task RemoveImagesAsync(IEnumerable<string> imagesRelativePath, CancellationToken cancellationToken = default)
         {
             DeleteFilesIfExist(imagesRelativePath);
             return Task.CompletedTask;
@@ -69,13 +69,14 @@ namespace ECom.Infrastructure.Services
             await _photoRepo.DeleteAsync(cancellationToken, id);
 
             // Phase 2: Schedule a delayed background job to physically purge the file later.
+            // The job runs outside this request, so it must not observe the request token.
             BackgroundJob.Schedule<IImageManagementService>(
-                svc => svc.PurgeImageFileAsync(id, src),
+                svc => svc.PurgeImageFileAsync(id, src, CancellationToken.None),
                 TimeSpan.FromDays(3)
             );
         }
 
-        public Task PurgeImageFileAsync(int id, string src)
+        public Task PurgeImageFileAsync(int id, string src, CancellationToken cancellationToken = default)
         {
             // Physically remove the file from storage.
             DeleteFileIfExists(src);
@@ -86,11 +87,12 @@ namespace ECom.Infrastructure.Services
             return Task.CompletedTask;
         }
 
-        public async Task PurgeOldDeletedImagesAsync()
+        public async Task PurgeOldDeletedImagesAsync(CancellationToken cancellationToken = default)
         {
             var softDeletedPhotos = await _photoRepo.GetAllWithDeletedAsync(
                 predicate: photo => photo.IsDeleted == true,
-                trackChanges: false
+                trackChanges: false,
+                cancellationToken: cancellationToken
             );
 
             if (softDeletedPhotos == null || softDeletedPhotos.Any() == false)

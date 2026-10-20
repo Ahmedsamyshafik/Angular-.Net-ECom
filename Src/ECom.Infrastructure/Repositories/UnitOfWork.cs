@@ -1,6 +1,8 @@
 using Ecom.Core.Entities.User;
 using Ecom.Core.Interfaces;
 using Ecom.Core.Services;
+using Ecom.Core.Services.Facads;
+using Ecom.Core.Services.Orchestrators;
 
 using ECom.Infrastructure.Data;
 
@@ -35,6 +37,11 @@ namespace ECom.Infrastructure.Repositories
         public IGenerateToken GenerateToken { get; }
         public IMyAuth myAuth { get; }
 
+        public IOrderService OrderService { get; }
+
+        public IShippingAddressesRepo ShippingAddressesRepo { get; }
+        public IStockReservationService StockReservationService { get; }
+
 
 
         #endregion
@@ -51,7 +58,10 @@ namespace ECom.Infrastructure.Repositories
             IEmailService emailService,
             UserManager<AppUser> userManage,
             SignInManager<AppUser> signInManager,
-            IGenerateToken generateToken)
+            IGenerateToken generateToken,
+            IOrderService orderService,
+            IShippingAddressesRepo shippingAddressesRepo,
+            IStockReservationService stockReservationService)
         {
             _context = context;
             ProductService = productService;
@@ -64,7 +74,9 @@ namespace ECom.Infrastructure.Repositories
             _userManage = userManage;
             GenerateToken = generateToken;
             myAuth = new AuthReposiory(userManage, signInManager, generateToken, emailService);
-
+            OrderService = orderService;
+            ShippingAddressesRepo = shippingAddressesRepo;
+            StockReservationService = stockReservationService;
         }
 
         #endregion
@@ -74,11 +86,6 @@ namespace ECom.Infrastructure.Repositories
         public async Task Commit(CancellationToken cancellationToken = default)
         {
             await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        Task IUnitOfWork.Commit(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
         }
 
         #endregion

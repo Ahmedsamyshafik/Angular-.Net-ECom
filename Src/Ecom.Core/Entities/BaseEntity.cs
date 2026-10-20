@@ -1,28 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Ecom.Core.Entities
 {
     public class BaseEntity<T>
     {
         public T Id { get; set; }
-        public DateTime CreatedAt { get; set; }= DateTime.UtcNow;
-        public T? CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? CreatedBy { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
-        public T? UpdatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
-        public T? DeletedBy { get; set; }
+        public string? DeletedBy { get; set; }
 
 
 
         [Timestamp]
         public byte[]? RowVersion { get; set; }
-        
+
 
 
     }

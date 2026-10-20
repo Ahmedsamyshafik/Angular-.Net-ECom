@@ -16,6 +16,9 @@ namespace ECom.Api.Validators
             RuleFor(x => x.Price)
                 .GreaterThanOrEqualTo(0).WithMessage("Price must be greater than or equal to 0.");
 
+            RuleFor(x => x.Quantity)
+                .GreaterThanOrEqualTo(0).WithMessage("Quantity must be greater than or equal to 0.");
+
             RuleFor(x => x.CategoryId)
                 .GreaterThan(0).WithMessage("Category id must be greater than 0.");
 

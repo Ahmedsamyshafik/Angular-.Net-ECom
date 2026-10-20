@@ -2,9 +2,10 @@ using AutoMapper;
 
 using Ecom.Core.DTO.Products;
 using Ecom.Core.Entities.Discount;
+using Ecom.Core.Entities.Tbl_Product;
 using Ecom.Core.Exceptions;
 using Ecom.Core.Interfaces;
-using Ecom.Core.Services;
+using Ecom.Core.Services.Facads;
 
 namespace ECom.Infrastructure.Application.Facades
 {
@@ -47,6 +48,14 @@ namespace ECom.Infrastructure.Application.Facades
             await ApplyCoreAsync(discount, cancellationToken);
         }
 
+        public async Task ApplyDiscountToTrackedProductAsync(AddDiscountDto discount, TblProducts product, CancellationToken cancellationToken = default)
+        {
+            var entity = BuildDiscount(discount);
+
+            await _discountRepo.AddAsync(entity, cancellationToken);
+            await _discountProductRepo.AddDiscountProductAsync(entity, product, cancellationToken);
+        }
+
         public async Task ApplyCategoryDiscountAsync(AddDiscountDto discount, CancellationToken cancellationToken = default)
         {
             if (!discount.CategoryId.HasValue)
@@ -70,14 +79,21 @@ namespace ECom.Infrastructure.Application.Facades
 
         private async Task ApplyCoreAsync(AddDiscountDto discount, CancellationToken cancellationToken)
         {
+            var entity = BuildDiscount(discount);
+
+            await _discountRepo.AddAsync(entity, cancellationToken);
+            await _discountProductRepo.AddDiscountToProductsAsync(entity, discount.ProductIds ?? new List<int>(), cancellationToken);
+        }
+
+        private TblDiscount BuildDiscount(AddDiscountDto discount)
+        {
             var entity = _mapper.Map<TblDiscount>(discount);
             entity.CreatedAt = DateTime.UtcNow;
 
             var now = DateTime.UtcNow;
             entity.IsActive = entity.StartDate <= now && now <= entity.EndDate;
 
-            await _discountRepo.AddAsync(entity, cancellationToken);
-            await _discountProductRepo.AddDiscountToProductsAsync(entity, discount.ProductIds ?? new List<int>(), cancellationToken);
+            return entity;
         }
 
         #endregion

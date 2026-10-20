@@ -10,13 +10,20 @@ namespace Ecom.Core.Services
 
         Task<ProductDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-        Task<AddProductResult> AddAsync(AddProductDto product, CancellationToken cancellationToken = default);
+        Task<AddProductResult> AddAsync(AddProductDto product, string systemUserId, CancellationToken cancellationToken = default);
 
         Task CompensateAsync(AddProductResult result, CancellationToken cancellationToken = default);
 
-        Task<ProductDto> UpdateAsync(UpdateProductDto product, CancellationToken cancellationToken = default);
+        Task<ProductDto> UpdateAsync(UpdateProductDto product, string systemUserId, CancellationToken cancellationToken = default);
 
-        Task DeleteAsync(int id, CancellationToken cancellationToken = default);
-        Task<ProductCartInfoDto> GetProductForAddToCartAsync(int productId, int quantity, CancellationToken cancellationToken = default);
+        Task DeleteAsync(int id, string systemUserId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Loads the info a cart/order line needs (name, images, current price/discount).
+        /// When enforceAvailableStock is true the product's available quantity is validated
+        /// against the requested quantity. Order-time reads pass false: by then the quantity
+        /// is already reserved and validated against the reservation, not raw stock.
+        /// </summary>
+        Task<ProductCartInfoDto> GetProductForAddToCartAsync(int productId, int quantity, CancellationToken cancellationToken = default, bool enforceAvailableStock = true);
     }
 }

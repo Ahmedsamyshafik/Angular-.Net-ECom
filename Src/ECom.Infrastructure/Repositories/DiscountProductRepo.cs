@@ -1,4 +1,5 @@
 using Ecom.Core.Entities.Discount;
+using Ecom.Core.Entities.Tbl_Product;
 using Ecom.Core.Interfaces;
 using ECom.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,19 @@ namespace ECom.Infrastructure.Repositories
             return entity;
         }
 
+        public async Task<TblProductDiscount> AddDiscountProductAsync(TblDiscount discount, TblProducts product, CancellationToken cancellationToken = default)
+        {
+            var entity = new TblProductDiscount
+            {
+                CreatedAt = DateTime.UtcNow,
+                Discount = discount,
+                Product = product
+            };
+
+            await _context.AddAsync(entity, cancellationToken);
+            return entity;
+        }
+
         public async Task AddDiscountToProductsAsync(TblDiscount discount, IEnumerable<int> productIds, CancellationToken cancellationToken = default)
         {
             foreach (var productId in productIds)
@@ -38,9 +52,7 @@ namespace ECom.Infrastructure.Repositories
             }
         }
 
-        public async Task<IReadOnlyList<TblProductDiscount>> GetByProductIdsAsync(
-            IEnumerable<int> productIds,
-            CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<TblProductDiscount>> GetByProductIdsAsync( IEnumerable<int> productIds,CancellationToken cancellationToken = default)
         {
             var ids = productIds?.Distinct().ToList() ?? new List<int>();
 

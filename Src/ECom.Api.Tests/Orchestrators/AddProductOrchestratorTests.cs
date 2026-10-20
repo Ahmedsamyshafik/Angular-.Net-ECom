@@ -1,6 +1,8 @@
 using Ecom.Core.DTO.Products;
 using Ecom.Core.Exceptions;
 using Ecom.Core.Services;
+using Ecom.Core.Services.Facads;
+
 using ECom.Infrastructure.Application.Orchestrators;
 using Moq;
 
@@ -42,10 +44,10 @@ public class AddProductOrchestratorTests
     [Fact]
     public async Task ExecuteAsync_WithoutDiscount_ShouldOnlyRunTheProductStep()
     {
-        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleResult());
 
-        var result = await _orchestrator.ExecuteAsync(MakeDto());
+        var result = await _orchestrator.ExecuteAsync(MakeDto(), "1");
 
         Assert.Equal(5, result.Product.Id);
         _discountFacade.Verify(
@@ -56,7 +58,7 @@ public class AddProductOrchestratorTests
     [Fact]
     public async Task ExecuteAsync_WithDiscount_ShouldApplyItToTheGeneratedProductId()
     {
-        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleResult(7));
 
         var discount = new AddDiscountDto
@@ -66,7 +68,7 @@ public class AddProductOrchestratorTests
             Value = 10m
         };
 
-        await _orchestrator.ExecuteAsync(MakeDto(discount));
+        await _orchestrator.ExecuteAsync(MakeDto(discount), "1");
 
         _discountFacade.Verify(
             f => f.ApplyDiscountAsync(
@@ -80,7 +82,7 @@ public class AddProductOrchestratorTests
     {
         var order = new List<string>();
 
-        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback(() => order.Add("product"))
             .ReturnsAsync(SampleResult());
 
@@ -88,7 +90,7 @@ public class AddProductOrchestratorTests
             .Callback(() => order.Add("discount"))
             .Returns(Task.CompletedTask);
 
-        await _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m }));
+        await _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m }), "1");
 
         Assert.Equal(new[] { "product", "discount" }, order);
     }
@@ -98,14 +100,14 @@ public class AddProductOrchestratorTests
     {
         var result = SampleResult();
 
-        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 
         _discountFacade.Setup(f => f.ApplyDiscountAsync(It.IsAny<AddDiscountDto>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new BadRequestException("Provide at least one product id."));
 
         await Assert.ThrowsAsync<BadRequestException>(
-            () => _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m })));
+            () => _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m }), "1"));
 
         _productService.Verify(
             s => s.CompensateAsync(result, It.IsAny<CancellationToken>()),
@@ -115,11 +117,11 @@ public class AddProductOrchestratorTests
     [Fact]
     public async Task ExecuteAsync_WhenProductStepFails_ShouldNotApplyDiscountOrCompensateAgain()
     {
-        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<CancellationToken>()))
+        _productService.Setup(s => s.AddAsync(It.IsAny<AddProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new BadRequestException("Category is invalid."));
 
         await Assert.ThrowsAsync<BadRequestException>(
-            () => _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m })));
+            () => _orchestrator.ExecuteAsync(MakeDto(new AddDiscountDto { Value = 5m }), "1"));
 
         _discountFacade.Verify(
             f => f.ApplyDiscountAsync(It.IsAny<AddDiscountDto>(), It.IsAny<CancellationToken>()),

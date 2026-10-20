@@ -18,7 +18,7 @@ namespace ECom.Infrastructure.Services
         {
             _configuration = configuration;
         }
-        public string GetAndCreateToken(AppUser user)
+        public string GetAndCreateToken(AppUser user, IEnumerable<string>? roles = null)
         {
             string secuirty = _configuration["token:Secret"];
             var key = Encoding.ASCII.GetBytes(secuirty);
@@ -29,8 +29,20 @@ namespace ECom.Infrastructure.Services
             {
                 new Claim(ClaimTypes.Name,user.UserName),
                 new Claim(ClaimTypes.Email,user.Email),
-                //new Claim(ClaimTypes.NameIdentifier,user.Id)
+                new Claim(ClaimTypes.NameIdentifier,user.Id)
             };
+
+            // Role claims drive [Authorize(Roles = AppRoles.Admin)] on the catalog writes.
+            if (roles is not null)
+            {
+                foreach (var role in roles)
+                {
+                    if (!string.IsNullOrWhiteSpace(role))
+                    {
+                        claims.Add(new Claim(ClaimTypes.Role, role));
+                    }
+                }
+            }
             SecurityTokenDescriptor tokenDescriptor = new()
             {
                 Subject = new ClaimsIdentity(claims),

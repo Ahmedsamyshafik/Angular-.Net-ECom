@@ -9,12 +9,12 @@ namespace Ecom.Core.Services
 
         Task<CategoryDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-        Task<AddCategoryResult> AddAsync(AddCategoryDto category, CancellationToken cancellationToken = default);
+        Task<AddCategoryResult> AddAsync(AddCategoryDto category, string systemUserId, CancellationToken cancellationToken = default);
 
         Task CompensateAsync(AddCategoryResult result, CancellationToken cancellationToken = default);
 
-        Task<CategoryDto> UpdateAsync(UpdateCategoryDto category, CancellationToken cancellationToken = default);
+        Task<CategoryDto> UpdateAsync(UpdateCategoryDto category, string systemUserId, CancellationToken cancellationToken = default);
 
-        Task DeleteAsync(int id, CancellationToken cancellationToken = default);
+        Task DeleteAsync(int id, string systemUserId, CancellationToken cancellationToken = default);
     }
 }

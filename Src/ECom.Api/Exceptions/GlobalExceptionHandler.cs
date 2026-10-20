@@ -35,10 +35,10 @@ public class GlobalExceptionHandler : IExceptionHandler
         {
             NotFoundException => StatusCodes.Status404NotFound,
             BadRequestException => StatusCodes.Status400BadRequest,
-            ConflictException => StatusCodes.Status409Conflict,
-            DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
             BadHttpRequestException => StatusCodes.Status400BadRequest,
             ArgumentOutOfRangeException => StatusCodes.Status400BadRequest,
+            ConflictException => StatusCodes.Status409Conflict,
+            DbUpdateConcurrencyException => StatusCodes.Status409Conflict, //concurency Race
             _ => StatusCodes.Status500InternalServerError
         };
 

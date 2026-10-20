@@ -1,10 +1,19 @@
 ﻿using Ecom.Core.Entities.Discount;
+using Ecom.Core.Entities.Tbl_Product;
 
 namespace Ecom.Core.Interfaces
 {
     public interface IDiscountProductRepo : IGenericRepo<TblProductDiscount, int>
     {
         Task<TblProductDiscount> AddDiscountProductAsync(TblDiscount discount, int productId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Links a discount to an already-tracked (but possibly not yet saved) product using the
+        /// navigation property. This lets EF Core insert the product before the join row and
+        /// resolve the generated foreign key, which the scalar <c>ProductId</c> overload cannot
+        /// do while the product id is still 0.
+        /// </summary>
+        Task<TblProductDiscount> AddDiscountProductAsync(TblDiscount discount, TblProducts product, CancellationToken cancellationToken = default);
 
         Task AddDiscountToProductsAsync(TblDiscount discount, IEnumerable<int> productIds, CancellationToken cancellationToken = default);
 

@@ -2,12 +2,10 @@ using Ecom.Core.DTO.Categories;
 using Ecom.Core.Entities.Tbl_Product;
 using Ecom.Core.Interfaces;
 using Ecom.Core.Pagination;
+
 using ECom.Infrastructure.Data;
+
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ECom.Infrastructure.Repositories
 {
@@ -24,6 +22,7 @@ namespace ECom.Infrastructure.Repositories
                 .Where(c => c.IsDeleted == false)
                 .Include(c => c.Photos);
 
+            //Get Categories which only have products?
             if (query.HasProducts.HasValue)
             {
                 queryable = query.HasProducts.Value
@@ -33,6 +32,7 @@ namespace ECom.Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
+                //search using every word in the search!
                 var terms = query.Search.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var term in terms)
                 {
@@ -64,6 +64,8 @@ namespace ECom.Infrastructure.Repositories
                 .Skip((query.PageNumber - 1) * query.PageSize)
                 .Take(query.PageSize)
                 .ToListAsync(cancellationToken);
+
+
 
             return new Pagination<TblCategories>(query.PageNumber, query.PageSize, totalCount, data);
         }

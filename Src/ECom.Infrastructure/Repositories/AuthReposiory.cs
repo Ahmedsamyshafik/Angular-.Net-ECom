@@ -25,7 +25,7 @@ namespace ECom.Infrastructure.Repositories
             _emailService = emailService;
         }
 
-        public async Task<string> RegisterAsync(RegisterDto registerDto)
+        public async Task<string> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
         {
             if (registerDto == null)
                 return "Faild!";
@@ -72,16 +72,16 @@ namespace ECom.Infrastructure.Repositories
 
         }
         [AutomaticRetry(Attempts = 5)]
-        public async Task SendEmailAsync(string email, string code, string component, string subject, string message)
+        public async Task SendEmailAsync(string email, string code, string component, string subject, string message, CancellationToken cancellationToken = default)
         {
             string from = _emailService.returnEmailFrom();
             var res = new EmailDto(email, from, subject,
                 EmailStringBody.send(email, code, component, message));
-            await _emailService.SendEmail(res);
+            await _emailService.SendEmail(res, cancellationToken);
 
         }
 
-        public async Task<UserWithTokenDto> Login(LoginDto loginDto)
+        public async Task<UserWithTokenDto> Login(LoginDto loginDto, CancellationToken cancellationToken = default)
         {
             if (loginDto == null)
                 throw new BadRequestException("Error,No Login Data Founded!");
@@ -106,8 +106,9 @@ namespace ECom.Infrastructure.Repositories
                 throw new BadRequestException("Error,Email or Password is incorrect");
 
             }
-            //create jwt
-            string token = _generateToken.GetAndCreateToken(findUser);
+            //create jwt (include roles so role-based authorization works off the token)
+            var roles = await _userManager.GetRolesAsync(findUser);
+            string token = _generateToken.GetAndCreateToken(findUser, roles);
             //return token with user obj
             var returnUser = new UserDto()
             {
@@ -123,10 +124,18 @@ namespace ECom.Infrastructure.Repositories
             };
         }
 
-        public async Task<bool> SendEmailForForgetPassword(string email)
+        public async Task<bool> SendEmailForForgetPassword(string email, CancellationToken cancellationToken = default)
         {
+            AppUser findUser = new();
+            try
+            {
 
-            AppUser findUser = await CheckEmailForUserAsync(email);
+                findUser = await CheckEmailForUserAsync(email);
+            }
+            catch
+            {
+                return false;
+            }
 
             var tokeen = await _userManager.GeneratePasswordResetTokenAsync(findUser);
             string xx = "ResetPasswordEmail";
@@ -136,7 +145,7 @@ namespace ECom.Infrastructure.Repositories
 
         }
 
-        public async Task<string> ResetPassword(ResetPasswordDto resetPasswordDto)
+        public async Task<string> ResetPassword(ResetPasswordDto resetPasswordDto, CancellationToken cancellationToken = default)
         {
             AppUser findUser = await CheckEmailForUserAsync(resetPasswordDto.Email);
             IdentityResult? result =
@@ -152,7 +161,7 @@ namespace ECom.Infrastructure.Repositories
             return "done";
         }
 
-        public async Task<bool> ActiveAccount(ActiveAccountDto activeAccountDto)
+        public async Task<bool> ActiveAccount(ActiveAccountDto activeAccountDto, CancellationToken cancellationToken = default)
         {
             AppUser findUser = await CheckEmailForUserAsync(activeAccountDto.Email);
             var result = await _userManager.ConfirmEmailAsync(findUser, activeAccountDto.Token);
@@ -165,9 +174,13 @@ namespace ECom.Infrastructure.Repositories
             return true;
         }
 
-        public async Task<string> ChangePassword(ChangePasswordDto changePasswordDto)
+        public async Task<string> ChangePassword(string userId, ChangePasswordDto changePasswordDto, CancellationToken cancellationToken = default)
         {
-            var user = await _userManager.FindByEmailAsync(changePasswordDto.Email);
+            // The target user is the authenticated caller (userId comes from the claims),
+            // never the email in the body - otherwise anyone could change any password.
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return "user not found";
             if (changePasswordDto.NewPassword != changePasswordDto.ConfirmPassword)
                 return "new password and confirm not match";
             var res = await _userManager
@@ -179,8 +192,13 @@ namespace ECom.Infrastructure.Repositories
             return "done";
         }
 
+        public async Task<AppUser> GetUserByEmail(string email, CancellationToken cancellationToken = default)
+        {
+            return await _userManager.FindByEmailAsync(email);
+            //throw new NotImplementedException();
+        }
         #region Helper
-        private async Task<AppUser> CheckEmailForUserAsync(string email)
+        private async Task<AppUser> CheckEmailForUserAsync(string email, CancellationToken cancellationToken = default)
         {
             AppUser findUser = await _userManager.FindByEmailAsync(email);
             if (findUser == null)
@@ -192,6 +210,7 @@ namespace ECom.Infrastructure.Repositories
         {
             return string.Join("; ", errors.Select(x => x.Description));
         }
+
         #endregion
     }
 }

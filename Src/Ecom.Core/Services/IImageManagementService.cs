@@ -6,12 +6,12 @@ namespace Ecom.Core.Services
     {
         Task<List<string>> AddImagesAsync(List<FileParameterDto> files, string forWhat, CancellationToken cancellationToken = default);
 
-        Task RemoveImagesAsync(IEnumerable<string> imagesRelativePath);
+        Task RemoveImagesAsync(IEnumerable<string> imagesRelativePath, CancellationToken cancellationToken = default);
 
         Task SoftDeleteImageAsync(int id, string src, CancellationToken cancellationToken = default);
 
-        Task PurgeImageFileAsync(int id, string src);
+        Task PurgeImageFileAsync(int id, string src, CancellationToken cancellationToken = default);
 
-        Task PurgeOldDeletedImagesAsync();
+        Task PurgeOldDeletedImagesAsync(CancellationToken cancellationToken = default);
     }
 }

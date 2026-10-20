@@ -283,7 +283,7 @@ public class ProductServiceTests
             Price = 1200m,
             CategoryId = 3,
             Files = new List<FileParameterDto>()
-        });
+        }, "1");
 
         Assert.Equal("Laptop", staged!.Name);
         Assert.Equal(1200m, staged.Price);
@@ -315,10 +315,10 @@ public class ProductServiceTests
             Description = "A laptop",
             Price = 1200m,
             CategoryId = 3
-        }));
+        }, "1"));
 
         _imageService.Verify(
-            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/product/x.png"))),
+            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Contains("imgs/product/x.png")), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -334,9 +334,9 @@ public class ProductServiceTests
             Description = "A laptop",
             Price = 1200m,
             CategoryId = 3
-        }));
+        }, "1"));
 
-        _imageService.Verify(s => s.RemoveImagesAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
+        _imageService.Verify(s => s.RemoveImagesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -349,7 +349,7 @@ public class ProductServiceTests
         await _service.CompensateAsync(result);
 
         _imageService.Verify(
-            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Count() == 2)),
+            s => s.RemoveImagesAsync(It.Is<IEnumerable<string>>(p => p.Count() == 2), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -377,7 +377,7 @@ public class ProductServiceTests
             Price = 1100m,
             CategoryId = 4,
             RowVersion = clientRowVersion
-        });
+        }, "1");
 
         Assert.Equal("Updated Laptop", product.Name);
         Assert.Equal("Updated", product.Description);
@@ -402,7 +402,7 @@ public class ProductServiceTests
             Price = 1m,
             CategoryId = 1,
             RowVersion = null
-        });
+        }, "1");
 
         Assert.Equal(new byte[] { 1, 2, 3 }, product.RowVersion);
     }
@@ -448,7 +448,7 @@ public class ProductServiceTests
             CategoryId = 1,
             ExistingPhotoIds = new List<int>(),
             NewPhotos = new List<FileParameterDto>()
-        });
+        }, "1");
 
         var removed = Assert.Single(removedPhotos!);
         Assert.True(removed.IsDeleted);
@@ -473,7 +473,7 @@ public class ProductServiceTests
             Description = "Y",
             Price = 1m,
             CategoryId = 1
-        }));
+        }, "1"));
     }
 
     #endregion
@@ -496,7 +496,7 @@ public class ProductServiceTests
                 new TblPhoto { Id = 10, PhotoPath = "imgs/product/a.png", ProductId = 1 }
             });
 
-        await _service.DeleteAsync(1);
+        await _service.DeleteAsync(1, "1");
 
         _imageService.Verify(s => s.SoftDeleteImageAsync(10, "imgs/product/a.png", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -507,7 +507,7 @@ public class ProductServiceTests
         _productRepo.Setup(r => r.DeleteOrThrowAsync(It.IsAny<CancellationToken>(), It.IsAny<object[]>()))
             .ThrowsAsync(new NotFoundException("Product not found."));
 
-        await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(999));
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync(999, "1"));
         _imageService.Verify(
             s => s.SoftDeleteImageAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);

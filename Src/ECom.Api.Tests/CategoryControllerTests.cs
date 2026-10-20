@@ -131,7 +131,7 @@ public class CategoryControllerTests
         var form = new AddCategoryFormDto { Name = "Electronics", Description = "Devices" };
 
         var addResult = SampleAddResult("imgs/category/x.png");
-        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(addResult);
 
         var result = await _controller.Add(form);
@@ -144,6 +144,7 @@ public class CategoryControllerTests
         _categoryService.Verify(
             s => s.AddAsync(
                 It.Is<AddCategoryDto>(c => c.Name == "Electronics" && c.Description == "Devices"),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
@@ -152,7 +153,7 @@ public class CategoryControllerTests
     [Fact]
     public async Task Add_WhenCommitSucceeds_ShouldNotCompensate()
     {
-        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleAddResult("imgs/category/x.png"));
 
         await _controller.Add(new AddCategoryFormDto { Name = "Electronics", Description = "Devices" });
@@ -168,7 +169,7 @@ public class CategoryControllerTests
     {
         var addResult = SampleAddResult("imgs/category/x.png", "imgs/category/y.png");
 
-        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(addResult);
 
         _unitOfWork.Setup(u => u.Commit())
@@ -186,7 +187,7 @@ public class CategoryControllerTests
     [Fact]
     public async Task Add_WhenServiceFails_ShouldNotCommit()
     {
-        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new BadRequestException("Category is invalid."));
 
         await Assert.ThrowsAsync<BadRequestException>(
@@ -206,7 +207,7 @@ public class CategoryControllerTests
 
         await Assert.ThrowsAsync<BadRequestException>(() => _controller.Add(new AddCategoryFormDto()));
         _categoryService.Verify(
-            s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<CancellationToken>()),
+            s => s.AddAsync(It.IsAny<AddCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -221,7 +222,7 @@ public class CategoryControllerTests
             RowVersion = Convert.ToBase64String(new byte[] { 7, 6 })
         };
 
-        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleDto());
 
         var result = await _controller.Update(form);
@@ -233,6 +234,7 @@ public class CategoryControllerTests
         _categoryService.Verify(
             s => s.UpdateAsync(
                 It.Is<UpdateCategoryDto>(c => c.Id == 1 && c.Name == "New Electronics" && c.RowVersion != null),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
@@ -241,7 +243,7 @@ public class CategoryControllerTests
     [Fact]
     public async Task Update_WhenCategoryMissing_ShouldPropagateNotFound()
     {
-        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new NotFoundException("Category not found."));
 
         var form = new UpdateCategoryFormDto { Id = 99, Name = "X", Description = "Y" };
@@ -253,7 +255,7 @@ public class CategoryControllerTests
     [Fact]
     public async Task Update_WhenConcurrencyConflict_ShouldPropagateToGlobalHandler()
     {
-        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.UpdateAsync(It.IsAny<UpdateCategoryDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SampleDto());
 
         _unitOfWork.Setup(u => u.Commit())
@@ -273,20 +275,20 @@ public class CategoryControllerTests
     [Fact]
     public async Task Delete_ShouldDelegateToCategoryServiceAndCommitOnce()
     {
-        _categoryService.Setup(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.DeleteAsync(1, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _controller.Delete(1);
 
         Assert.IsType<OkObjectResult>(result);
-        _categoryService.Verify(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        _categoryService.Verify(s => s.DeleteAsync(1, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
 
     [Fact]
     public async Task Delete_WhenCategoryMissing_ShouldPropagateNotFound()
     {
-        _categoryService.Setup(s => s.DeleteAsync(999, It.IsAny<CancellationToken>()))
+        _categoryService.Setup(s => s.DeleteAsync(999, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new NotFoundException("Category not found."));
 
         await Assert.ThrowsAsync<NotFoundException>(() => _controller.Delete(999));

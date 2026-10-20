@@ -4,6 +4,8 @@ using Ecom.Core.Entities.User;
 using Ecom.Core.Interfaces;
 using Ecom.Core.Mapping;
 using Ecom.Core.Services;
+using Ecom.Core.Services.Facads;
+using Ecom.Core.Services.Orchestrators;
 
 using ECom.Infrastructure.Application.Calculators;
 using ECom.Infrastructure.Application.Facades;
@@ -44,12 +46,21 @@ namespace ECom.Infrastructure.Registerations
             services.AddScoped<IDiscountRepo, DiscountRepo>();
             services.AddScoped<IDiscountProductRepo, DiscountProductRepo>();
             services.AddScoped<ICartRepository, RedisCartRepository>();
+            services.AddScoped<IOrdersRepo, OrdersRepo>();
+            services.AddScoped<IOrderItemsRepo, OrderItemsRepo>();
+            services.AddScoped<IShippingAddressesRepo, ShippingAddressesRepo>();
+            services.AddScoped<IDeliveryMethodsRepo, DeliveryMethodsRepo>();
 
             //Services
-            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductService, Infrastructure.Application.Services.ProductService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IGenerateToken, GenereateToken>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IMyAuth, AuthReposiory>();
+            services.AddScoped<IStockReservationService, StockReservationService>();
+            services.AddScoped<IReservationJobScheduler, HangfireReservationJobScheduler>();
+            services.AddScoped<ReservationExpirationJobs>();
 
 
             //Custom Services
@@ -67,16 +78,19 @@ namespace ECom.Infrastructure.Registerations
             services.AddAutoMapper(_ => { }, typeof(ProductMapping).Assembly);
 
             //Redis
+            #region Redis
             services.AddSingleton<IConnectionMultiplexer>(i =>
             {
 
-                var redisConn = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+                var redisConn = configuration["Redis"] ?? "localhost:6379";
                 var config = ConfigurationOptions.Parse(redisConn);
                 config.AbortOnConnectFail = false; // يمنع إيقاف التطبيق إذا كان Redis غير متاح مؤقتاً
                 return ConnectionMultiplexer.Connect(config);
 
             });
+            #endregion
             //Authentication
+            #region Auth
             services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
             services.AddAuthentication(op =>
             {
@@ -115,6 +129,7 @@ namespace ECom.Infrastructure.Registerations
                     }
                 };
             });
+            #endregion
             //Unit of work
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 

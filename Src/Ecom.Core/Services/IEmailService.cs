@@ -4,7 +4,7 @@ namespace Ecom.Core.Services
 {
     public interface IEmailService
     {
-        Task SendEmail(EmailDto emailDto);
+        Task SendEmail(EmailDto emailDto, CancellationToken cancellationToken = default);
         string returnEmailFrom();
     }
 }
