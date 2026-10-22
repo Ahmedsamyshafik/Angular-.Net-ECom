@@ -361,3 +361,18 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ------------------------------------------------------------------------------
+# Project-specific ignores
+# ------------------------------------------------------------------------------
+
+# Angular client build output (the client normally lives in its own repository)
+dist/
+.angular/
+
+# Local configuration / secrets - never commit real credentials
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.local.json
