@@ -406,6 +406,40 @@ public class StockReservationServiceSqlTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => ctxA.SaveChangesAsync());
     }
 
+    [Fact]
+    public async Task GetReservationThenConfirm_ConfirmsAllReservationsForTheOrder()
+    {
+        if (!await SqlAvailableAsync())
+        {
+            return;
+        }
+
+        string user = NewUser();
+        await using var ctx = CreateContext();
+        int productA = await CreateProductAsync(ctx, 5);
+        int productB = await CreateProductAsync(ctx, 5);
+        int reservationA = await CreateReservationAsync(user, productA, 2);
+        int reservationB = await CreateReservationAsync(user, productB, 3);
+        int orderId = await CreateOrderAsync();
+
+        await AttachReservationToOrderAsync(user, productA, orderId, reservationA, Status.Pending);
+        await AttachReservationToOrderAsync(user, productB, orderId, reservationB, Status.Pending);
+
+        await using var confirmCtx = CreateContext();
+        var service = new StockReservationService(confirmCtx);
+
+        Assert.True(await service.GetReservationThenConfirm(orderId, user));
+
+        await using var verifyCtx = CreateContext();
+        var statuses = await verifyCtx.TblStockReservations
+            .Where(r => r.OrderId == orderId)
+            .Select(r => r.Status)
+            .ToListAsync();
+
+        Assert.Equal(2, statuses.Count);
+        Assert.All(statuses, s => Assert.Equal(ReservationStatus.Confirmed, s));
+    }
+
     private static async Task ForceExpiryAsync(int reservationId)
     {
         await using var ctx = CreateContext();
