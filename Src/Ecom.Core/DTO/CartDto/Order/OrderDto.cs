@@ -50,6 +50,7 @@ namespace Ecom.Core.DTO.CartDto.Order
         public int OrderId { get; set; }
         public DateTime CreatedAt { get; set; }
         public int deliveryMethodId { get; set; }
+        public string deliveryMethodName { get; set; }
         public shipAddressDto shipAddress { get; set; }
         public List<TblOrderItem> items { get; set; }
         public decimal SubTotal { get; set; }

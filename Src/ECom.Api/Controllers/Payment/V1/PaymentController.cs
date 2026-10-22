@@ -115,22 +115,27 @@ namespace ECom.Api.Controllers.Payment.V1
                     orderId,
                     session.Id);
 
-                // Next step:
-                // 1. Update this order to Paid.
+                // Resolve the buyer without mutating the order yet: the order must only be
+                // marked paid when its stock reservations can actually be confirmed.
+                var order = await _unitOfWork.OrderService.GetOrderById(orderId);
+                var user = await _unitOfWork.myAuth.GetUserByEmail(order.BuyerEmail);
 
-                // 2. Confirm its stock reservation.
+                var confirmed = await _unitOfWork.StockReservationService.GetReservationThenConfirm(orderId, user.Id);
 
-                // 3. Clear the appropriate cart.
-                //TryConfirmReservationAsync - DeleteCartAsync - updateOrderToConfirm
-                var x = await _unitOfWork.OrderService.UpdateOrderToConfirm(orderId);
-                var user = await _unitOfWork.myAuth.GetUserByEmail(x.BuyerEmail);
-
-                await _unitOfWork.StockReservationService.GetReservationThenConfirm(orderId, user.Id);
-
-                await _unitOfWork.Commit();
-
-
-                //await _unitOfWork.CartProductFacade.DeleteCartAsync(user.Id); // Already Removed
+                if (confirmed)
+                {
+                    await _unitOfWork.OrderService.UpdateOrderToConfirm(orderId);
+                    await _unitOfWork.Commit();
+                }
+                else
+                {
+                    // Payment succeeded but the reservation was already expired/released.
+                    // Do NOT mark the order paid; return 200 so Stripe stops retrying.
+                    _logger.LogWarning(
+                        "Payment succeeded but stock reservation could not be confirmed; order NOT marked paid. OrderId: {OrderId}, SessionId: {SessionId}. Refund the payment manually.",
+                        orderId,
+                        session.Id);
+                }
 
             }
 
@@ -143,6 +148,40 @@ namespace ECom.Api.Controllers.Payment.V1
         {
             try
             {
+                var lineItems = order.items.Select(item => new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        Currency = "usd",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = item.ProductName
+                        },
+                        UnitAmount = (long)(item.Price * 100) // Convert to cents
+                    },
+                    Quantity = item.Quentity
+                }).ToList();
+
+                // GetTotal() = SubTotal + deliveryMethod.Price, so the delivery fee must be
+                // charged as its own line item; otherwise Stripe charges less than the total.
+                var deliveryFee = order.Total - order.SubTotal;
+                if (deliveryFee > 0)
+                {
+                    lineItems.Add(new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = order.deliveryMethodName
+                            },
+                            UnitAmount = (long)(deliveryFee * 100)
+                        },
+                        Quantity = 1
+                    });
+                }
+
                 var options = new SessionCreateOptions
                 {
                     ClientReferenceId = order.OrderId.ToString(),
@@ -152,19 +191,7 @@ namespace ECom.Api.Controllers.Payment.V1
                              "http://localhost:4200/Success?session_id={CHECKOUT_SESSION_ID}",
                     CancelUrl = "http://localhost:4200/Shop",
                     AllowedPaymentMethodTypes = new List<string> { "card" },
-                    LineItems = order.items.Select(item => new SessionLineItemOptions
-                    {
-                        PriceData = new SessionLineItemPriceDataOptions
-                        {
-                            Currency = "usd",
-                            ProductData = new SessionLineItemPriceDataProductDataOptions
-                            {
-                                Name = item.ProductName
-                            },
-                            UnitAmount = (long)(item.Price * 100) // Convert to cents
-                        },
-                        Quantity = item.Quentity
-                    }).ToList(),
+                    LineItems = lineItems,
 
                 };
 

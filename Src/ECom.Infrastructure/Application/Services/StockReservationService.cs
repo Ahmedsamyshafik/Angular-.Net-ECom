@@ -152,10 +152,25 @@ namespace ECom.Infrastructure.Application.Services
 
         public async Task<bool> GetReservationThenConfirm(int orderId,string userId)
         {
-            var x = await _context.TblStockReservations.Where(x => x.UserId == userId && x.OrderId == orderId)
-                .Select(x=>x.Id).FirstOrDefaultAsync() ;
-           return await TryConfirmReservationAsync(x);
+            var reservationIds = await _context.TblStockReservations
+                .Where(x => x.UserId == userId && x.OrderId == orderId)
+                .Select(x => x.Id)
+                .ToListAsync();
 
+            // An order without reservations cannot be confirmed as paid.
+            if (reservationIds.Count == 0)
+                return false;
+
+            var allConfirmed = true;
+            foreach (var reservationId in reservationIds)
+            {
+                if (!await TryConfirmReservationAsync(reservationId))
+                {
+                    allConfirmed = false;
+                }
+            }
+
+            return allConfirmed;
         }
 
         #region Private Helpers

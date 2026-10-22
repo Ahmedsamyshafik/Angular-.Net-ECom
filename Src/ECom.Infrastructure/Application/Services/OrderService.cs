@@ -110,6 +110,7 @@ namespace ECom.Infrastructure.Application.Services
                     OrderId = order.Id,
                     CreatedAt = order.CreatedAt,
                     deliveryMethodId = order.deliveryMethod.Id,
+                    deliveryMethodName = order.deliveryMethod.Name,
                     items = order.orderItems.ToList(),
                     Total = order.GetTotal(),
                     Status = order.status.ToString()
